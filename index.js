@@ -1,47 +1,74 @@
-
-
 /**
  * .
  * @exports
  */
 module.exports = function(markdown_text){
-  var children = [];
-
   var lines = markdown_text.split('/n');
+  var specs = [];
 
-  console.log(lines[0]);
-
-  var regexIndent = /^\s+/;
-  var regexMark = /^\#+|^\*|^\-{3}/;
+  var re_indent = /^[ ]+/;
+  //var re_special = /^\#+|^\*|^\-{3}/;
+  var re_special = /^\#+|^ *\*|^ *[0-9]|^\-{3}/;
 
   var lastIndent = 0;
 
+  var paragraph = '';
+
   lines.forEach(function(line){
-    var indent = line.match(regexIndent);
-    line = line.trim();
-
-    var mark = line.match(regexMark);
-
-    var lineText;
-    if( mark ){
-      lineText = line.slice(regexMark.length).trim();
+    var indent;
+    if( line.match(re_indent) ){
+      indent = Math.floor(line.match(re_indent)[0].length/2);
     } else {
-      lineText = line;
+      indent = 0;
     }
+    line = line.trim();
+    var special_match = line.match(re_special);
 
-    if( mark[0] === '#' ){ //heading
-      var hlevel = line.match(/^#./)[0].length;
-      children.push({
-        tag: 'h'+hlevel,
-        text: line
+    var line_text;
+    var type;
+
+    if( line === '' ){ // blank line
+      // Complete paragraph
+      specs.push({
+        tag: 'p',
+        text: paragraph
       });
-    } else if( mark === '*' ){
-      
+      paragraph = '';
+    } else if( special_match ) { // special
+      if( paragraph ){
+        // Complete paragraph
+        specs.push({
+          tag: 'p',
+          text: paragraph
+        });
+        paragraph = '';
+      }
+
+      line_text = line.slice(re_special.length).trim();
+
+      if( line[0] === '#' ){ //heading
+        var hlevel = line.match(/^#+[^#]/)[0].length - 1;
+        type = 'h'+hlevel;
+      } else if( line[0] === '*' ){
+        type = 'ul';
+      } else if( line.match(/^[0-9]/) ){
+        type = 'ol';
+      } else if( line.match(/^-{3}/) ){
+        type = 'hr';
+      }
+
+      specs.push({
+        tag: type,
+        text: line_text
+      });
+
+    } else { // paragraph
+      paragraph += line;
     }
-
-
 
   });
 
-  return false;
+
+  console.log('SPECS', JSON.stringify(specs));
+  return JSON.stringify(specs);
 };

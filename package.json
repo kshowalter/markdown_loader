@@ -1,5 +1,5 @@
 {
-  "name": "markdown_loader",
+  "name": "markdown_parser",
   "version": "0.1.0",
   "description": "Converts markdown into specDOM.",
   "main": "index.js",
