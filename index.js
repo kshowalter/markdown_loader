@@ -3,7 +3,7 @@
  * @exports
  */
 module.exports = function(markdown_text){
-  var lines = markdown_text.split('/n');
+  var lines = markdown_text.split('\n');
   var specs = [];
 
   var re_indent = /^[ ]+/;
@@ -14,7 +14,12 @@ module.exports = function(markdown_text){
 
   var paragraph = '';
 
-  lines.forEach(function(line){
+  var level = 0;
+  var parent = [
+    specs
+  ];
+
+  lines.forEach(function(line, i){
     var indent;
     if( line.match(re_indent) ){
       indent = Math.floor(line.match(re_indent)[0].length/2);
@@ -24,43 +29,61 @@ module.exports = function(markdown_text){
     line = line.trim();
     var special_match = line.match(re_special);
 
-    var line_text;
-    var type;
+    var spec = {
+      tag: false,
+      text: false
+    };
 
-    if( line === '' ){ // blank line
+    if( line === '' || special_match ){ // blank line or speial character
       // Complete paragraph
-      specs.push({
-        tag: 'p',
-        text: paragraph
-      });
-      paragraph = '';
-    } else if( special_match ) { // special
       if( paragraph ){
-        // Complete paragraph
-        specs.push({
-          tag: 'p',
-          text: paragraph
-        });
+        spec.tag = 'p';
+        spec.text = paragraph;
         paragraph = '';
+        parent[level].push(spec);
       }
+    }
 
-      line_text = line.slice(re_special.length).trim();
+    if( special_match ) { // special
+      parent[level].push(spec);
+
+      var clean_text = line.slice(special_match[0].length).trim();
 
       if( line[0] === '#' ){ //heading
-        var hlevel = line.match(/^#+[^#]/)[0].length - 1;
-        type = 'h'+hlevel;
-      } else if( line[0] === '*' ){
-        type = 'ul';
-      } else if( line.match(/^[0-9]/) ){
-        type = 'ol';
-      } else if( line.match(/^-{3}/) ){
-        type = 'hr';
-      }
+        var new_hlevel = line.match(/^#+[^#]/)[0].length - 1;
 
-      specs.push({
-        tag: type,
-        text: line_text
-      });
+        if( new_hlevel > level ){
+          level = new_hlevel;
+          spec.tag = 'div';
+          spec.text = undefined;
+          spec.props = {
+            class: 'level_'+new_hlevel
+          };
+          spec.children = [
+            {
+              tag: 'h'+new_hlevel,
+              text: clean_text
+            }
+          ];
+          parent[level] = spec.children;
+        } else if( new_hlevel < level ){
+          level = new_hlevel;
+
+
+        } else {
+          spec.tag = 'h'+new_hlevel;
+          spec.text = clean_text;
+        }
+      } else if( line[0] === '*' ){
+        spec.tag = 'ul';
+        spec.text = clean_text;
+      } else if( line.match(/^[0-9]/) ){
+        spec.tag = 'ol';
+        spec.text = clean_text;
+      } else if( line.match(/^-{3}/) ){
+        spec.tag = 'hr';
+        spec.text = clean_text;
+      }
 
     } else { // paragraph
       paragraph += line;
@@ -69,6 +92,6 @@ module.exports = function(markdown_text){
   });
 
 
-  console.log('SPECS', JSON.stringify(specs));
-  return JSON.stringify(specs);
+  console.log( 'module.exports = ' + JSON.stringify(specs) );
+  return 'module.exports = ' + JSON.stringify(specs);
 };
