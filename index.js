@@ -9,7 +9,7 @@ module.exports = function(markdown_text){
 
   var re_indent = /^[ ]+/;
   //var re_special = /^\#+|^\*|^\-{3}/;
-  var re_special = /^#+|^ *\*|^ *\+|^ *-|^ *[0-9]|^-{3}/;
+  var re_special = /^#+|^ *\*|^ *\+|^ *-|^ *[0-9]+\.|^-{3}/;
 
   var paragraph_children = [];
 
@@ -27,9 +27,14 @@ module.exports = function(markdown_text){
   ];
 
   var root_ul = false;
-  var lastIndent = 0;
-  var l_level = 0;
-  var l_parent = [];
+  var ul_lastIndent = 0;
+  var ul_level = 0;
+  var ul_parent = [];
+
+  var root_ol = false;
+  var ol_lastIndent = 0;
+  var ol_level = 0;
+  var ol_parent = [];
 
   lines.forEach(function(line, i){
     var indent;
@@ -38,27 +43,30 @@ module.exports = function(markdown_text){
     } else {
       indent = 0;
     }
-    var special_match = line.match(re_special);
+    var special_match = line.trim().match(re_special);
 
     var line_trimed = line.trim();
 
 
 
     if( line_trimed === '' ){ // blank line or speial character
-      // list level reset and commit list to structure
-      l_level = 0;
-      lastIndent = 0;
+
+      ul_level = 0;
+      ul_lastIndent = 0;
       if( root_ul ){
-        console.log(root_ul);
         h_parent[h_level].push(root_ul);
         root_ul = false;
-        l_parent = [];
+        ul_parent = [];
       }
-    //} else if( ! special_match ) {
-    //  line = line.trim() + ' ';
-    } else {
-      //line = line.trim();
-      //line = line.trim() + ' ';
+
+      ol_level = 0;
+      ol_lastIndent = 0;
+      if( root_ol ){
+        h_parent[h_level].push(root_ol);
+        root_ol = false;
+        ol_parent = [];
+      }
+
     }
 
     if( line_trimed === '' || special_match ){ // blank line or speial character
@@ -77,8 +85,11 @@ module.exports = function(markdown_text){
 
     if( ! special_match ) { // paragraph line
       paragraph_children = paragraph_children.concat(process_text(line));
+      console.log('PPPPPPP')
     } else { // special
-      var clean_text = line.slice(special_match[0].length).trim();
+      console.log('XXXXX', special_match[0].length, line );
+      var clean_text = line.trim().slice(special_match[0].length).trim();
+      console.log(clean_text);
 
       if( line_trimed[0] === '#' ){ // new heading
 
@@ -116,8 +127,8 @@ module.exports = function(markdown_text){
           children: process_text(clean_text),
         });
       } else if( line_trimed[0] === '*' || line_trimed[0] === '+' || line_trimed[0] === '-' ){ // bullet list
-        var indent_delta = indent - lastIndent;
-        lastIndent = indent;
+        var indent_delta = indent - ul_lastIndent;
+        ul_lastIndent = indent;
 
         if( ! root_ul ){
           root_ul = {
@@ -127,46 +138,73 @@ module.exports = function(markdown_text){
             },
             children: [],
           };
-          l_parent[0] = root_ul.children;
+          ul_parent[0] = root_ul.children;
         }
 
-        if( indent_delta === 0 ){
-          //l_level = l_level;
-        } else if( indent_delta > 0 ) {
-          l_level++;
+        if( indent_delta > 0 ) {
+          ul_level++;
           var ul = {
             tag: 'ul',
             props: {
-              class: 'list_level_'+l_level
+              class: 'list_level_'+ul_level
             },
             children: [],
           };
           //h_parent[h_level].push(ul);
-          l_parent[l_level] = ul.children;
-          l_parent[l_level-1].push( ul );
+          ul_parent[ul_level] = ul.children;
+          ul_parent[ul_level-1].push( ul );
         } else if( indent_delta < 0 ) {
-          l_level--;
+          ul_level--;
         }
-        //if( ! l_parent[l_level] ){
-        //  l_parent[l_level] = [];
-        //}
 
-        //console.log('* ', indent_delta, l_level, line, clean_text);
-
-        l_parent[l_level].push({
+        ul_parent[ul_level].push({
           tag: 'li',
           props: {
-            class: 'list_level_'+l_level
+            class: 'list_level_'+ul_level
           },
           children: process_text(clean_text),
         });
 
-      } else if( line.match(/^[0-9]/) ){ // numbered list
-        h_parent[h_level].push({
-          tag: 'ol',
+      } else if( line_trimed.match(/^[0-9]+\./) ){ // numbered list
+        var indent_delta = indent - ol_lastIndent;
+        ol_lastIndent = indent;
+
+        if( ! root_ol ){
+          root_ol = {
+            tag: 'ol',
+            props: {
+              class: 'list_level_0'
+            },
+            children: [],
+          };
+          ol_parent[0] = root_ol.children;
+        }
+
+        if( indent_delta > 0 ) {
+          ol_level++;
+          var ol = {
+            tag: 'ol',
+            props: {
+              class: 'list_level_'+ol_level
+            },
+            children: [],
+          };
+          //h_parent[h_level].push(ol);
+          ol_parent[ol_level] = ol.children;
+          ol_parent[ol_level-1].push( ol );
+        } else if( indent_delta < 0 ) {
+          ol_level--;
+        }
+
+        ol_parent[ol_level].push({
+          tag: 'li',
+          props: {
+            class: 'list_level_'+ol_level
+          },
           children: process_text(clean_text),
         });
-      } else if( line.match(/^-{3}/) ){ // --- horizontal line
+
+      } else if( line_trimed.match(/^-{3}/) ){ // --- horizontal line
         h_parent[h_level].push({
           tag: 'hr',
           children: process_text(clean_text),
