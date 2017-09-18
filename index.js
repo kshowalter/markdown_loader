@@ -85,11 +85,8 @@ module.exports = function(markdown_text){
 
     if( ! special_match ) { // paragraph line
       paragraph_children = paragraph_children.concat(process_text(line));
-      console.log('PPPPPPP')
     } else { // special
-      console.log('XXXXX', special_match[0].length, line );
       var clean_text = line.trim().slice(special_match[0].length).trim();
-      console.log(clean_text);
 
       if( line_trimed[0] === '#' ){ // new heading
 
