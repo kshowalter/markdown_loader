@@ -8,7 +8,7 @@
   "keywords": [
     "Markdown"
   ],
-  "repository" : {
+  "repository": {
     "type": "git",
     "url": "git@github.com:kshowalter/markdown_loader.git"
   }
