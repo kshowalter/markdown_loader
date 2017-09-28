@@ -1,9 +1,8 @@
-
-
 //ar re_find_links = /\[(.*?)\]\((.+?)\)/g;
-var re_split_line = /\[!\[.*?\]\(.+?\)\]\(.+?\)|(\[.*?\]\(.+?\)|!\[.*?\]\(.+?\))/g;
+//var re_split_line = /\[!\[.*?\]\(.+?\)\]\(.+?\)|(\[.*?\]\(.+?\)|!\[.*?\]\(.+?\))/g;
 //var re_split_line = /!\[(.*?)\]\((.+?)\)|(\[.*?\]\(.+?\))/g;
-var re_split_links = /\[(.*?)\]\((.+?)\)/;
+//var re_split_links = /\[(.*?)\]\((.+?)\)/;
+var re_split_links = /\(|\)|\[|\]/g;
 var re_split_images = /!\[(.*?)\]\((.+?)\)/;
 
 /**
@@ -17,69 +16,85 @@ module.exports = function process_text(line_string){
     '!',
     '[',
   ];
-  //var midpoints = {
-  //  '!': ')',
-  //  '[': ']'
-  //}
   var closers = {
     '!': ')',
     '[': ')'
   };
 
-  var hoppers = [];
+  var hopper = [];
   var mark = 0;
 
   for( var c = 0; c<line_string.length; c++){
     //console.log(c, line_string[c]);
     var trigger_index = triggers.indexOf(line_string[c]);
+    if( line_string[c] === '[' && line_string[c-1] === '!'){
+      trigger_index = -1;
+    }
     if( trigger_index !== -1 ){
       var trigger = triggers[trigger_index];
-      //console.log('triggered at: ', c, trigger, line_string[c]);
       var plain_text = line_string.slice(mark,c);
       if( plain_text.trim() !== ''){
         line_array.push( plain_text );
       }
-      mark = c;
+      mark = c+1;
 
-      hoppers.push(
+      hopper.push(
         {
           trigger: trigger,
           start: c,
           //mid: false,
-          end: false
+          end: false,
+          children: []
         }
       );
 
-    } else if( hoppers[hoppers.length-1] && line_string[c] === closers[hoppers[hoppers.length-1].trigger] ){
-      mark = c;
-      var hopper = hoppers.pop(); //[hoppers.length-1];
-      hopper.end = c+1;
-      var to_convert = line_string.slice(hopper.start, hopper.end);
-      if( hopper.trigger === '!' ){
+    } else if( hopper[hopper.length-1] && line_string[c] === closers[hopper[hopper.length-1].trigger] ){
+      mark = c+1;
+      var special = hopper.pop(); //[hopper.length-1];
+      special.end = c+1;
+      var to_convert = line_string.slice(special.start, special.end);
+
+      var container;
+      if( hopper[hopper.length-1] && hopper[hopper.length-1].children ){
+        container = hopper[hopper.length-1].children;
+      } else {
+        container = line_array;
+      }
+
+      if( special.trigger === '!' ){
         var img_parts = to_convert.split(re_split_images);
-        line_array.push({
+        container.push({
           tag: 'img',
           props: {
             alt: img_parts[1],
             src: img_parts[2]
           }
         });
-      } else if( hopper.trigger === '['){
+      } else if( special.trigger === '['){
         var link_parts = to_convert.split(re_split_links);
-        line_array.push({
+        var children;
+        var href;
+        if( link_parts.length >= 7 ){ //image link
+          children = special.children || [ link_parts[2] ];
+          href = link_parts[7];
+        } else { // text link
+          children = [ link_parts[1] ];
+          href = link_parts[3];
+        }
+        container.push({
           tag: 'a',
-          text: link_parts[1],
+          children: children,
           props: {
-            href: link_parts[2]
+            href: href
           }
         });
-
       }
     }
   }
 
   c = line_string.length;
   var plain_text = line_string.slice(mark,c);
+  //console.log('plain_text e: ', plain_text);
   if( plain_text.trim() !== ''){
     line_array.push( plain_text );
   }
