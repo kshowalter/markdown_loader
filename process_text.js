@@ -45,7 +45,6 @@ module.exports = function process_text(line_string){
   var mark = 0;
 
   for( var c = 0; c<line_string.length; c++){
-    //console.log(c, line_string[c]);
     var trigger_index = triggers.indexOf(line_string[c]);
     if( line_string[c] === '[' && line_string[c-1] === '!'){
       trigger_index = -1;
@@ -115,7 +114,6 @@ module.exports = function process_text(line_string){
 
   c = line_string.length;
   var plain_text = line_string.slice(mark,c);
-  //console.log('plain_text e: ', plain_text);
   if( plain_text.trim() !== ''){
     line_array.push( plain_text );
   }
