@@ -5,7 +5,28 @@ var process_text = require('./process_text');
  * @exports
  */
 module.exports = function(markdown_text){
+  var specs = {
+    tag: 'div',
+    props: {
+      class: 'level_0'
+    },
+    meta: {},
+    children: [],
+  };
+
   var lines = markdown_text.split('\n');
+
+  if( lines[0].match( /^.*:/ ) && lines[0][0] !== '#' ){
+    var document_parts = markdown_text.split('\n\n');
+    var meta_params = document_parts[0].split('\n');
+    lines = lines.slice( meta_params.length+1 );
+    meta_params.forEach(function(param_string){
+      var key = param_string.split(':')[0].trim();
+      var value = param_string.split(':')[1].trim();
+      specs.meta[key] = value;
+    });
+  }
+
 
   var re_indent = /^[ ]+/;
   //var re_special = /^\#+|^\*|^\-{3}/;
@@ -13,13 +34,6 @@ module.exports = function(markdown_text){
 
   var paragraph_children = [];
 
-  var specs = {
-    tag: 'div',
-    props: {
-      class: 'level_0'
-    },
-    children: [],
-  };
 
   var h_level = 0;
   var h_parent = [
@@ -36,6 +50,7 @@ module.exports = function(markdown_text){
   var ol_level = 0;
   var ol_parent = [];
 
+
   lines.forEach(function(line, i){
     var indent;
     if( line.match(re_indent) ){
@@ -50,7 +65,6 @@ module.exports = function(markdown_text){
 
 
     if( line_trimed === '' ){ // blank line or speial character
-
       ul_level = 0;
       ul_lastIndent = 0;
       if( root_ul ){
@@ -58,7 +72,6 @@ module.exports = function(markdown_text){
         root_ul = false;
         ul_parent = [];
       }
-
       ol_level = 0;
       ol_lastIndent = 0;
       if( root_ol ){
@@ -66,7 +79,6 @@ module.exports = function(markdown_text){
         root_ol = false;
         ol_parent = [];
       }
-
     }
 
     if( line_trimed === '' || special_match ){ // blank line or speial character
