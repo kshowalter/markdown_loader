@@ -5,6 +5,26 @@
 var re_split_links = /\(|\)|\[|\]/g;
 var re_split_images = /!\[(.*?)\]\((.+?)\)/;
 
+function get_props(string){
+  var desc_parts = {
+    text: '',
+    props: {}
+  };
+  var desc_halves = string.split('|');
+  desc_parts.text = desc_halves[0];
+  if( desc_halves[1] ){
+    var props_parts = desc_halves[1].split(/ |,/g);
+    props_parts.forEach(function(prop_string){
+      var value_parts = prop_string.trim().split(/:|=/g);
+      desc_parts.props[value_parts[0]] = value_parts[1];
+    });
+  }
+
+  return desc_parts;
+}
+
+
+
 /**
  * .
  * @exports
@@ -63,12 +83,13 @@ module.exports = function process_text(line_string){
 
       if( special.trigger === '!' ){
         var img_parts = to_convert.split(re_split_images);
+        var desc_parts = get_props(img_parts[1]);
+        var props = desc_parts.props || undefined;
+        props.src = img_parts[2];
+        props.alt = desc_parts.text;
         container.push({
           tag: 'img',
-          props: {
-            alt: img_parts[1],
-            src: img_parts[2]
-          }
+          props: props
         });
       } else if( special.trigger === '['){
         var link_parts = to_convert.split(re_split_links);
