@@ -21,9 +21,11 @@ module.exports = function(markdown_text){
     var meta_params = document_parts[0].split('\n');
     lines = lines.slice( meta_params.length+1 );
     meta_params.forEach(function(param_string){
-      var key = param_string.split(':')[0].trim();
-      var value = param_string.split(':')[1].trim();
-      specs.meta[key] = value;
+      if( param_string.trim() !== '' ){
+        var key = param_string.split(':')[0].trim();
+        var value = param_string.split(':')[1].trim();
+        specs.meta[key] = value;
+      }
     });
   }
 
