@@ -1,4 +1,6 @@
 var process_text = require('./process_text');
+var get_props = require('./get_props');
+
 
 /**
  * .
@@ -101,6 +103,9 @@ module.exports = function(markdown_text){
       paragraph_children = paragraph_children.concat(process_text(line));
     } else { // special
       var clean_text = line.trim().slice(special_match[0].length).trim();
+      var desc_parts = get_props(clean_text);
+      clean_text = desc_parts.text;
+
 
       if( line_trimed[0] === '#' ){ // new heading
 
@@ -135,6 +140,7 @@ module.exports = function(markdown_text){
 
         h_parent[h_level].push({
           tag: 'h'+new_hlevel,
+          props: desc_parts.props,
           children: process_text(clean_text),
         });
       } else if( line_trimed[0] === '*' || line_trimed[0] === '+' || line_trimed[0] === '-' ){ // bullet list
